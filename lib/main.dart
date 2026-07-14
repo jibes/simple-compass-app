@@ -3,6 +3,7 @@ import 'package:sensors_plus/sensors_plus.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'dart:math';
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 void main() {
