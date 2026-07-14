@@ -34,7 +34,7 @@ jobs:
         run: flutter pub get
 
       - name: Enable web platform
-        run: flutter create --platforms web .
+        run: flutter create --platforms web . || true
 
       - name: Build web app
         run: flutter build web --release --base-href /simple-compass-app/
