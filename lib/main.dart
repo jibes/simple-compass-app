@@ -3,12 +3,9 @@ import 'package:sensors_plus/sensors_plus.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'dart:math';
-import 'package:flutter/foundation.dart' default flutter_foundation;
-import 'package:flutter/web_plugins.dart' as web_plugins;
+import 'package:flutter/foundation.dart';
 
 void main() {
-  // Register web plugins for geolocation
-  web_plugins.setUrlStrategy(web_plugins.PathUrlStrategy());
   runApp(const CompassApp());
 }
 
@@ -47,6 +44,8 @@ class _CompassScreenState extends State<CompassScreen> {
   String _errorMessage = '';
   bool _compassAvailable = true;
   double? _gpsHeading;
+  StreamSubscription<AccelerometerEvent>? _accelerometerSubscription;
+  StreamSubscription<MagnetometerEvent>? _magnetometerSubscription;
 
   @override
   void initState() {
@@ -57,7 +56,7 @@ class _CompassScreenState extends State<CompassScreen> {
 
   void _checkPlatform() {
     // On web, compass (magnetometer) is not available in most browsers
-    if (flutter_foundation.kIsWeb) {
+    if (kIsWeb) {
       setState(() {
         _compassAvailable = false;
       });
@@ -66,8 +65,8 @@ class _CompassScreenState extends State<CompassScreen> {
 
   @override
   void dispose() {
-    accelerometerEvents.close();
-    magnetometerEvents.close();
+    _accelerometerSubscription?.cancel();
+    _magnetometerSubscription?.cancel();
     super.dispose();
   }
 
@@ -85,7 +84,7 @@ class _CompassScreenState extends State<CompassScreen> {
     }
 
     // On mobile, request sensor permissions
-    if (!flutter_foundation.kIsWeb) {
+    if (!kIsWeb) {
       final sensorStatus = await Permission.sensors.request();
       if (sensorStatus.isGranted) {
         _startCompassUpdates();
@@ -106,7 +105,7 @@ class _CompassScreenState extends State<CompassScreen> {
     ).listen(
       (Position position) {
         // Calculate GPS heading if we have previous position and we're moving
-        if (_previousPosition != null && !flutter_foundation.kIsWeb) {
+        if (_previousPosition != null && !kIsWeb) {
           final speed = position.speed;
           if (speed > 0.5) { // Only calculate heading if moving faster than 0.5 m/s
             final dy = position.latitude - _previousPosition!.latitude;
@@ -135,13 +134,10 @@ class _CompassScreenState extends State<CompassScreen> {
   }
 
   void _startCompassUpdates() {
-    if (flutter_foundation.kIsWeb) return;
+    if (kIsWeb) return;
 
-    // Combine accelerometer and magnetometer to get azimuth
-    // This is a simplified approach
-    
     // Use magnetometer for compass heading
-    magnetometerEvents.listen((MagnetometerEvent event) {
+    _magnetometerSubscription = magnetometerEvents.listen((MagnetometerEvent event) {
       // Calculate heading from magnetometer
       final heading = atan2(event.y, event.x) * (180 / pi);
       setState(() {
@@ -150,7 +146,7 @@ class _CompassScreenState extends State<CompassScreen> {
     });
 
     // Also listen to accelerometer for device orientation
-    accelerometerEvents.listen((AccelerometerEvent event) {
+    _accelerometerSubscription = accelerometerEvents.listen((AccelerometerEvent event) {
       // This can be used for device tilt detection
     });
   }
@@ -169,7 +165,7 @@ class _CompassScreenState extends State<CompassScreen> {
 
   double _getDisplayHeading() {
     // On web without compass, use GPS heading if available
-    if (!flutter_foundation.kIsWeb || _compassAvailable) {
+    if (!kIsWeb || _compassAvailable) {
       return _heading;
     }
     // On web, use GPS heading if available
@@ -183,14 +179,13 @@ class _CompassScreenState extends State<CompassScreen> {
   @override
   Widget build(BuildContext context) {
     final displayHeading = _getDisplayHeading();
-    final hasCompass = _compassAvailable || _gpsHeading != null;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Simple Compass'),
         centerTitle: true,
         actions: [
-          if (flutter_foundation.kIsWeb)
+          if (kIsWeb)
             IconButton(
               icon: const Icon(Icons.info_outline),
               onPressed: () {
@@ -221,7 +216,7 @@ class _CompassScreenState extends State<CompassScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               // Platform indicator
-              if (flutter_foundation.kIsWeb)
+              if (kIsWeb)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 8.0),
                   child: Text(
@@ -335,7 +330,7 @@ class _CompassScreenState extends State<CompassScreen> {
               ),
               
               // GPS Heading indicator (for web)
-              if (flutter_foundation.kIsWeb && _gpsHeading != null)
+              if (kIsWeb && _gpsHeading != null)
                 Padding(
                   padding: const EdgeInsets.only(top: 8.0),
                   child: Text(
@@ -418,7 +413,7 @@ class _CompassScreenState extends State<CompassScreen> {
               const SizedBox(height: 20),
               
               // Platform-specific notes
-              if (flutter_foundation.kIsWeb)
+              if (kIsWeb)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20.0),
                   child: Text(
