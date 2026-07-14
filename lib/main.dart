@@ -94,6 +94,9 @@ class _CompassScreenState extends State<CompassScreen> {
           _compassAvailable = false;
         });
       }
+    } else {
+      // On web, we don't have compass, so mark loading as complete once we have location
+      // The location stream will update _isLoading when it gets the first position
     }
   }
 
@@ -122,7 +125,7 @@ class _CompassScreenState extends State<CompassScreen> {
         setState(() {
           _previousPosition = _position;
           _position = position;
-          _isLoading = false;
+          _isLoading = false; // Hide loading spinner once we have first position
         });
       },
       onError: (e) {
@@ -165,8 +168,8 @@ class _CompassScreenState extends State<CompassScreen> {
   }
 
   double _getDisplayHeading() {
-    // On web without compass, use GPS heading if available
-    if (!kIsWeb || _compassAvailable) {
+    // On mobile with compass, use magnetometer heading
+    if (!kIsWeb && _compassAvailable) {
       return _heading;
     }
     // On web, use GPS heading if available
@@ -345,9 +348,18 @@ class _CompassScreenState extends State<CompassScreen> {
               
               const SizedBox(height: 40),
               
-              // GPS Coordinates
-              if (_isLoading)
-                const CircularProgressIndicator(),
+              // GPS Coordinates or Loading
+              if (_isLoading && _position == null && _errorMessage.isEmpty)
+                const Column(
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(height: 16),
+                    Text(
+                      'Waiting for location...',
+                      style: TextStyle(color: Colors.white70),
+                    ),
+                  ],
+                ),
               
               if (_errorMessage.isNotEmpty)
                 Padding(
