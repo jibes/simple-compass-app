@@ -1,0 +1,146 @@
+// !$*UTF8*$
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objects = {
+		03882348237974419F661520 /* RunnerTests */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = file.xcodeproj;
+			name = RunnerTests;
+			path = RunnerTests.xcodeproj;
+			sourceTree = "<group>";
+		};
+		03882349237974419F661520 /* RunnerUITests */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = file.xcodeproj;
+			name = RunnerUITests;
+			path = RunnerUITests.xcodeproj;
+			sourceTree = "<group>";
+		};
+		1498D2321780F434A5839058 /* GeneratedPluginRegistrant.swift */ = {
+			isa = PBXFileReference;
+			fileEncoding = 4;
+			lastKnownFileType = sourcecode.swift;
+			name = GeneratedPluginRegistrant.swift;
+			path = ../GeneratedPluginRegistrant.swift;
+			sourceTree = "<group>";
+		};
+		2D6500102048151C00D4315F /* AppDelegate.swift */ = {
+			isa = PBXFileReference;
+			fileEncoding = 4;
+			lastKnownFileType = sourcecode.swift;
+			name = AppDelegate.swift;
+			path = Runner/AppDelegate.swift;
+			sourceTree = "<group>";
+		};
+		7D0FA3202248151C00D4315F /* Info.plist */ = {
+			isa = PBXFileReference;
+			fileEncoding = 4;
+			lastKnownFileType = text.plist.xml;
+			name = Info.plist;
+			path = Runner/Info.plist;
+			sourceTree = "<group>";
+		};
+		7D0FA3222248151C00D4315F /* LaunchScreen.storyboard */ = {
+			isa = PBXFileReference;
+			fileEncoding = 4;
+			lastKnownFileType = file.storyboard;
+			name = LaunchScreen.storyboard;
+			path = Runner/Base.lproj/LaunchScreen.storyboard;
+			sourceTree = "<group>";
+		};
+		7D0FA3232248151C00D4315F /* Main.storyboard */ = {
+			isa = PBXFileReference;
+			fileEncoding = 4;
+			lastKnownFileType = file.storyboard;
+			name = Main.storyboard;
+			path = Runner/Base.lproj/Main.storyboard;
+			sourceTree = "<group>";
+		};
+		7D0FA3252248151C00D4315F /* Assets.xcassets */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = folder.assetcatalog;
+			name = Assets.xcassets;
+			path = Runner/Assets.xcassets;
+			sourceTree = "<group>";
+		};
+		7D0FA3282248151C00D4315F /* Base */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = file.xcodeproj;
+			name = Base;
+			path = Runner/Base.lproj;
+			sourceTree = "<group>";
+		};
+		8D81801017F3547000572767 /* Runner.xcodeproj */ = {
+			isa = PBXFileReference;
+			lastKnownFileType = file.xcodeproj;
+			name = Runner.xcodeproj;
+			path = Runner.xcodeproj;
+			sourceTree = "<group>";
+		};
+		8D81801117F3547000572767 /* Runner */ = {
+			isa = PBXGroup;
+			children = (
+				2D6500102048151C00D4315F /* AppDelegate.swift */,
+				7D0FA3202248151C00D4315F /* Info.plist */,
+				7D0FA3222248151C00D4315F /* LaunchScreen.storyboard */,
+				7D0FA3232248151C00D4315F /* Main.storyboard */,
+				7D0FA3252248151C00D4315F /* Assets.xcassets */,
+				7D0FA3282248151C00D4315F /* Base */,
+			);
+			name = Runner;
+			sourceTree = "<group>";
+		};
+		8D81801517F3547000572767 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				8D81801617F3547000572767 /* Runner.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		8D81801617F3547000572767 /* Runner.app */ = {
+			isa = PBXFileReference;
+			explicitFileType = wrapper.application;
+			includeInIndex = 0;
+			name = Runner.app;
+			path = Runner.app;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		A8C180F82248151C00D4315F /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				1498D2321780F434A5839058 /* GeneratedPluginRegistrant.swift */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		BCFBCAB61D38803500A7D475 /* RunnerTests */ = {
+			isa = PBXGroup;
+			children = (
+				03882348237974419F661520 /* RunnerTests */,
+			);
+			name = RunnerTests;
+			sourceTree = "<group>";
+		};
+		BCFBCAB71D38803500A7D475 /* RunnerUITests */ = {
+			isa = PBXGroup;
+			children = (
+				03882349237974419F661520 /* RunnerUITests */,
+			);
+			name = RunnerUITests;
+			sourceTree = "<group>";
+		};
+	};
+	rootObject = 8D81801017F3547000572767 /* Project object */;
+	rootObjectType = PBXProject;
+	rootPath = ;
+	sourceRoot = ..;
+	versionObjectVersion = 3;
+	objectVersion = 51;
+	objectsVersion = 51;
+	uuid = 8D81801017F3547000572767;
+	lastSwiftUpdateCheck = 0800;
+	lastUpgradeCheck = 1200;
+}

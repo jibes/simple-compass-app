@@ -1,0 +1,38 @@
+# Flutter
+.dart_tool/
+.flutter-plugins-dependencies
+.packages
+build/
+
+# Android
+android/.idea/
+android/app/build/
+android/app/.gradle/
+android/gradle/
+android/.gradle/
+android/local.properties
+
+# iOS
+ios/.symlinks/
+ios/Flutter/
+ios/Pods/
+ios/Runner/GeneratedPluginRegistrant.swift
+ios/Runner/GeneratedPluginRegistrant.m
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# System
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
