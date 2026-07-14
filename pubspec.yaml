@@ -1,5 +1,5 @@
 name: simple_compass_app
-description: A simple compass app showing longitude, latitude, and altitude.
+description: A simple compass app showing longitude, latitude, and altitude. Works on Android, iOS, and web.
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -12,11 +12,13 @@ dependencies:
   sensors_plus: ^2.0.0
   geolocator: ^10.0.0
   permission_handler: ^11.0.0
+  geolocator_web: ^4.0.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.0
+  flutter_web_plugins: ^4.0.0
 
 flutter:
   uses-material-design: true

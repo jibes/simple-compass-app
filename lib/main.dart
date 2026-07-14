@@ -3,8 +3,12 @@ import 'package:sensors_plus/sensors_plus.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'dart:math';
+import 'package:flutter/foundation.dart' default flutter_foundation;
+import 'package:flutter/web_plugins.dart' as web_plugins;
 
 void main() {
+  // Register web plugins for geolocation
+  web_plugins.setUrlStrategy(web_plugins.PathUrlStrategy());
   runApp(const CompassApp());
 }
 
@@ -38,13 +42,26 @@ class CompassScreen extends StatefulWidget {
 class _CompassScreenState extends State<CompassScreen> {
   double _heading = 0.0;
   Position? _position;
+  Position? _previousPosition;
   bool _isLoading = true;
   String _errorMessage = '';
+  bool _compassAvailable = true;
+  double? _gpsHeading;
 
   @override
   void initState() {
     super.initState();
+    _checkPlatform();
     _initPermissions();
+  }
+
+  void _checkPlatform() {
+    // On web, compass (magnetometer) is not available in most browsers
+    if (flutter_foundation.kIsWeb) {
+      setState(() {
+        _compassAvailable = false;
+      });
+    }
   }
 
   @override
@@ -67,10 +84,16 @@ class _CompassScreenState extends State<CompassScreen> {
       });
     }
 
-    // Request sensor permissions (for Android 13+)
-    final sensorStatus = await Permission.sensors.request();
-    if (sensorStatus.isGranted) {
-      _startCompassUpdates();
+    // On mobile, request sensor permissions
+    if (!flutter_foundation.kIsWeb) {
+      final sensorStatus = await Permission.sensors.request();
+      if (sensorStatus.isGranted) {
+        _startCompassUpdates();
+      } else {
+        setState(() {
+          _compassAvailable = false;
+        });
+      }
     }
   }
 
@@ -82,7 +105,22 @@ class _CompassScreenState extends State<CompassScreen> {
       ),
     ).listen(
       (Position position) {
+        // Calculate GPS heading if we have previous position and we're moving
+        if (_previousPosition != null && !flutter_foundation.kIsWeb) {
+          final speed = position.speed;
+          if (speed > 0.5) { // Only calculate heading if moving faster than 0.5 m/s
+            final dy = position.latitude - _previousPosition!.latitude;
+            final dx = position.longitude - _previousPosition!.longitude;
+            // Calculate bearing in degrees
+            final bearing = atan2(dx, dy) * (180 / pi);
+            setState(() {
+              _gpsHeading = (bearing + 360) % 360;
+            });
+          }
+        }
+        
         setState(() {
+          _previousPosition = _position;
           _position = position;
           _isLoading = false;
         });
@@ -97,24 +135,23 @@ class _CompassScreenState extends State<CompassScreen> {
   }
 
   void _startCompassUpdates() {
-    // Combine accelerometer and magnetometer to get azimuth
-    // This is a simplified approach - for production, consider using a proper sensor fusion library
-    
-    // We'll use the device's built-in compass via accelerometer + magnetometer
-    // For simplicity, we'll use the accelerometer events which on most devices include device orientation
-    accelerometerEvents.listen((AccelerometerEvent event) {
-      // This gives us device orientation in 3D space
-      // We need to combine with magnetometer for true north
-    });
+    if (flutter_foundation.kIsWeb) return;
 
-    // Better approach: use magnetometer for compass heading
+    // Combine accelerometer and magnetometer to get azimuth
+    // This is a simplified approach
+    
+    // Use magnetometer for compass heading
     magnetometerEvents.listen((MagnetometerEvent event) {
       // Calculate heading from magnetometer
-      // This is a simplified calculation
       final heading = atan2(event.y, event.x) * (180 / pi);
       setState(() {
         _heading = heading;
       });
+    });
+
+    // Also listen to accelerometer for device orientation
+    accelerometerEvents.listen((AccelerometerEvent event) {
+      // This can be used for device tilt detection
     });
   }
 
@@ -130,178 +167,271 @@ class _CompassScreenState extends State<CompassScreen> {
     return directions[index];
   }
 
+  double _getDisplayHeading() {
+    // On web without compass, use GPS heading if available
+    if (!flutter_foundation.kIsWeb || _compassAvailable) {
+      return _heading;
+    }
+    // On web, use GPS heading if available
+    if (_gpsHeading != null) {
+      return _gpsHeading!;
+    }
+    // Default to 0 if no heading available
+    return 0.0;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final displayHeading = _getDisplayHeading();
+    final hasCompass = _compassAvailable || _gpsHeading != null;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Simple Compass'),
         centerTitle: true,
+        actions: [
+          if (flutter_foundation.kIsWeb)
+            IconButton(
+              icon: const Icon(Icons.info_outline),
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('Web Limitations'),
+                    content: const Text(
+                      'On web, true compass (magnetometer) is not available. '
+                      'Heading is calculated from GPS movement when moving. '
+                      'For full compass functionality, use the native app.',
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('OK'),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+        ],
       ),
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Compass Display
-            SizedBox(
-              width: 250,
-              height: 250,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  // Compass Rose
-                  Transform.rotate(
-                    angle: _heading * (pi / 180) * -1,
-                    child: Container(
-                      width: 200,
-                      height: 200,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 2),
-                        color: Colors.blue.withOpacity(0.3),
-                      ),
-                      child: Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Text(
-                              'N',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Platform indicator
+              if (flutter_foundation.kIsWeb)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8.0),
+                  child: Text(
+                    'Web Version - Limited Compass',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.orange.withOpacity(0.7),
+                    ),
+                  ),
+                ),
+              
+              // Compass Display
+              SizedBox(
+                width: 250,
+                height: 250,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    // Compass Rose
+                    Transform.rotate(
+                      angle: displayHeading * (pi / 180) * -1,
+                      child: Container(
+                        width: 200,
+                        height: 200,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2),
+                          color: Colors.blue.withOpacity(0.3),
+                        ),
+                        child: Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Text(
+                                'N',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 80),
-                            Text(
-                              _getCompassDirection(_heading),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
+                              const SizedBox(height: 80),
+                              Text(
+                                _getCompassDirection(displayHeading),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 80),
-                            const Text(
-                              'S',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
+                              const SizedBox(height: 80),
+                              const Text(
+                                'S',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  // Compass Needle (fixed, points north)
-                  Transform.rotate(
-                    angle: _heading * (pi / 180),
-                    child: Container(
-                      width: 180,
-                      height: 180,
-                      child: CustomPaint(
-                        painter: CompassNeedlePainter(),
+                    // Compass Needle (fixed, points north)
+                    Transform.rotate(
+                      angle: displayHeading * (pi / 180),
+                      child: Container(
+                        width: 180,
+                        height: 180,
+                        child: CustomPaint(
+                          painter: CompassNeedlePainter(),
+                        ),
                       ),
                     ),
-                  ),
-                  // Center point
-                  Container(
-                    width: 12,
-                    height: 12,
-                    decoration: const BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.red,
+                    // Center point
+                    Container(
+                      width: 12,
+                      height: 12,
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.red,
+                      ),
                     ),
-                  ),
-                ],
-              ),
-            ),
-            
-            const SizedBox(height: 40),
-            
-            // Heading in degrees
-            Text(
-              '${_heading.toStringAsFixed(1)}°',
-              style: const TextStyle(
-                fontSize: 32,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
-            
-            const SizedBox(height: 20),
-            
-            // Direction text
-            Text(
-              _getCompassDirection(_heading),
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
-            
-            const SizedBox(height: 40),
-            
-            // GPS Coordinates
-            if (_isLoading)
-              const CircularProgressIndicator(),
-            
-            if (_errorMessage.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Text(
-                  _errorMessage,
-                  style: const TextStyle(color: Colors.red),
-                  textAlign: TextAlign.center,
+                  ],
                 ),
               ),
-            
-            if (_position != null)
-              Column(
-                children: [
-                  const Text(
-                    'GPS Coordinates',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white70,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Latitude: ${_position!.latitude.toStringAsFixed(6)}°',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      color: Colors.white,
-                    ),
-                  ),
-                  Text(
-                    'Longitude: ${_position!.longitude.toStringAsFixed(6)}°',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      color: Colors.white,
-                    ),
-                  ),
-                  Text(
-                    'Altitude: ${_position!.altitude != 0 ? _position!.altitude.toStringAsFixed(1) : 'N/A'} m',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Accuracy: ${_position!.accuracy.toStringAsFixed(1)} m',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Colors.white70,
-                    ),
-                  ),
-                ],
+              
+              const SizedBox(height: 40),
+              
+              // Heading in degrees
+              Text(
+                '${displayHeading.toStringAsFixed(1)}°',
+                style: const TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
               ),
-          ],
+              
+              const SizedBox(height: 20),
+              
+              // Direction text
+              Text(
+                _getCompassDirection(displayHeading),
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              
+              // GPS Heading indicator (for web)
+              if (flutter_foundation.kIsWeb && _gpsHeading != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8.0),
+                  child: Text(
+                    'GPS Heading: ${_gpsHeading!.toStringAsFixed(1)}°',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.green.withOpacity(0.8),
+                    ),
+                  ),
+                ),
+              
+              const SizedBox(height: 40),
+              
+              // GPS Coordinates
+              if (_isLoading)
+                const CircularProgressIndicator(),
+              
+              if (_errorMessage.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Text(
+                    _errorMessage,
+                    style: const TextStyle(color: Colors.red),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              
+              if (_position != null)
+                Column(
+                  children: [
+                    const Text(
+                      'GPS Coordinates',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white70,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Latitude: ${_position!.latitude.toStringAsFixed(6)}°',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        color: Colors.white,
+                      ),
+                    ),
+                    Text(
+                      'Longitude: ${_position!.longitude.toStringAsFixed(6)}°',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        color: Colors.white,
+                      ),
+                    ),
+                    Text(
+                      'Altitude: ${_position!.altitude != 0 ? _position!.altitude.toStringAsFixed(1) : 'N/A'} m',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        color: Colors.white,
+                      ),
+                    ),
+                    if (_position!.speed > 0)
+                      Text(
+                        'Speed: ${_position!.speed.toStringAsFixed(1)} m/s',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          color: Colors.white,
+                        ),
+                      ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Accuracy: ${_position!.accuracy.toStringAsFixed(1)} m',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Colors.white70,
+                      ),
+                    ),
+                  ],
+                ),
+              
+              const SizedBox(height: 20),
+              
+              // Platform-specific notes
+              if (flutter_foundation.kIsWeb)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                  child: Text(
+                    'Note: For full compass functionality, install the native app on Android or iOS.',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.white.withOpacity(0.6),
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
