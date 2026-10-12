@@ -34,6 +34,9 @@ jobs:
         run: |
           if [[ "$GITHUB_REF" == refs/tags/v* ]]; then V="${GITHUB_REF#refs/tags/v}"
           elif [[ -n "$INPUT_VERSION" ]]; then V="${INPUT_VERSION#v}"
+          elif [[ "$GITHUB_REF" == refs/heads/main && "$GITHUB_EVENT_NAME" == push ]] \
+            && F="$(tr -d '[:space:]' < VERSION)" && [[ -n "$F" ]] \
+            && [[ -z "$(git ls-remote --tags origin "refs/tags/v$F")" ]]; then V="$F"  # unreleased VERSION bump
           else V="0.0.${{ github.run_number }}-dev"; fi
           IFS=. read -r MA MI PA <<< "${V%%-*}"
           CODE=$(( ${MA:-0} * 1000000 + ${MI:-0} * 1000 + ${PA:-0} ))
