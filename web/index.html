@@ -1,20 +1,69 @@
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A simple compass app showing longitude, latitude, and altitude.">
-
-  <!-- iOS meta tags & icons -->
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <title>Compass</title>
+  <meta name="description" content="A quiet, precise compass with true north, bearing lock, sun position and level.">
+  <meta name="theme-color" content="#EDEBE6" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0D0D0E" media="(prefers-color-scheme: dark)">
+  <meta name="color-scheme" content="light dark">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="Simple Compass">
-  
-  <title>Simple Compass</title>
-  <base href="$FLUTTER_BASE_HREF">
-  <link rel="manifest" href="manifest.json">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Compass">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <script src="main.dart.js" type="application/javascript"></script>
+  <main class="app" id="app" data-state="idle">
+    <header class="status">
+      <button class="chip" id="north" type="button" aria-label="Toggle true or magnetic north">Magnetic</button>
+      <span class="chip chip--quiet" id="quality" aria-live="polite"></span>
+    </header>
+
+    <section class="readout" aria-live="off">
+      <h1 class="heading" id="heading" aria-label="Heading"><span id="deg">—</span><span class="heading__unit">°</span></h1>
+      <p class="caption" id="caption">Compass</p>
+    </section>
+
+    <section class="dial-wrap">
+      <button class="dial" id="dial" type="button" aria-label="Lock or release bearing">
+        <div class="card" id="card"><svg id="ticks" viewBox="-200 -200 400 400" aria-hidden="true"></svg></div>
+        <div class="marks" id="marks" aria-hidden="true"></div>
+        <svg class="overlay" viewBox="-200 -200 400 400" aria-hidden="true">
+          <path class="arc" id="arc" d=""></path>
+          <path class="lubber" d="M0 -199 L0 -166"></path>
+          <path class="lubber-tip" d="M-5 -206 L5 -206 L0 -199 Z"></path>
+          <circle class="level-ring" cx="0" cy="0" r="16"></circle>
+          <path class="level-cross" d="M-30 0 H-22 M22 0 H30 M0 -30 V-22 M0 22 V30"></path>
+        </svg>
+        <span class="bubble" id="bubble" aria-hidden="true"></span>
+      </button>
+      <button class="enable" id="enable" type="button" hidden>Enable compass</button>
+    </section>
+
+    <footer class="data">
+      <button class="cell cell--wide" id="position" type="button" aria-label="Copy coordinates">
+        <span class="label">Position <span id="pos-acc"></span></span>
+        <span class="value"><span id="lat">Locating…</span><span id="lon"></span></span>
+      </button>
+      <div class="cell">
+        <span class="label">Altitude</span>
+        <span class="value" id="alt">—</span>
+      </div>
+      <div class="cell">
+        <span class="label">Sun</span>
+        <span class="value" id="sun">—</span>
+      </div>
+    </footer>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  </main>
+
+  <script src="geo.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>

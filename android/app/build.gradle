@@ -1,41 +1,66 @@
 plugins {
     id "com.android.application"
-    id "org.jetbrains.kotlin.android" version "1.9.0"
+    id "org.jetbrains.kotlin.android"
 }
 
+// Release signing: CI secrets override the in-repo key (see README → Signing).
+def keystoreFile = System.getenv("COMPASS_KEYSTORE") ?: "${rootDir}/signing/compass.jks"
+def keystorePassword = System.getenv("COMPASS_KEYSTORE_PASSWORD") ?: "compass"
+def keyAliasName = System.getenv("COMPASS_KEY_ALIAS") ?: "compass"
+def keyPasswordValue = System.getenv("COMPASS_KEY_PASSWORD") ?: keystorePassword
+
 android {
-    namespace "com.example.simple_compass_app"
-    compileSdk 34
-
-    compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
-    }
-
-    kotlinOptions {
-        jvmTarget = '1.8'
-    }
-
-    sourceSets {
-        main.java.srcDirs += 'src/main/kotlin'
-    }
+    namespace "io.github.jibes.compass"
+    compileSdk 35
 
     defaultConfig {
-        applicationId "com.example.simple_compass_app"
-        minSdk 24
-        targetSdk 34
-        versionCode 1
-        versionName "1.0.0"
+        applicationId "io.github.jibes.compass"
+        minSdk 26
+        targetSdk 35
+        versionCode((project.findProperty("versionCode") ?: "1") as int)
+        versionName project.findProperty("versionName") ?: "1.0.0"
+    }
+
+    signingConfigs {
+        release {
+            storeFile file(keystoreFile)
+            storePassword keystorePassword
+            keyAlias keyAliasName
+            keyPassword keyPasswordValue
+        }
     }
 
     buildTypes {
         release {
-            minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
+            signingConfig signingConfigs.release
         }
+    }
+
+    // The web app is the UI; ship it verbatim as assets.
+    sourceSets {
+        main.assets.srcDirs = ["${rootDir}/../web"]
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    kotlinOptions {
+        jvmTarget = "17"
+    }
+
+    dependenciesInfo {
+        // Opaque Google-signed blob; omit so F-Droid/Obtainium users can verify builds.
+        includeInApk = false
+        includeInBundle = false
     }
 }
 
 dependencies {
-    implementation platform('com.google.firebase:firebase-bom:32.7.0')
+    implementation "androidx.activity:activity-ktx:1.9.3"
+    implementation "androidx.core:core-ktx:1.13.1"
+    implementation "androidx.webkit:webkit:1.12.1"
 }

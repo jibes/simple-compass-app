@@ -1,150 +1,54 @@
-# Simple Compass App
+# Compass
 
-A cross-platform compass application for Android and iOS that displays:
-- Compass heading (degrees and cardinal direction)
-- Real-time GPS coordinates (latitude, longitude)
-- Altitude (when available)
+A quiet, precise compass. One web app, shipped as a PWA and as a native Android app.
 
-## Features
+**Web:** https://jibes.github.io/simple-compass-app/ · **Android:** [Add to Obtainium](https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/jibes/simple-compass-app)
 
-- **Compass Display**: Shows current heading with a rotating compass rose
-- **GPS Coordinates**: Displays latitude, longitude, and altitude
-- **Real-time Updates**: Continuously updates as you move
-- **Permissions Handling**: Automatically requests location and sensor permissions
+## What it does
 
-## Screenshots
+- **Tilt-compensated heading.** Reads correctly flat or held upright (switches smoothly from the top-edge axis to the camera axis).
+- **True north** on Android (WMM declination from the system); tap the top-left label to toggle magnetic/true.
+- **Bearing lock.** Tap the dial to lock the current heading. An arc shows how far to turn; a haptic pulse confirms when you're back on bearing. Tap again to release.
+- **Sun marker** on the rim (filled above the horizon, hollow below) — a free cross-check of your compass.
+- **Level** — the centre dot is a spirit-level bubble.
+- **Haptic detents** every 45°, position/altitude/accuracy, tap position to copy. Works offline. Keeps the screen awake.
 
-The app displays:
-1. A circular compass with North indicator
-2. Current heading in degrees
-3. Cardinal direction (N, NE, E, SE, S, SW, W, NW)
-4. GPS coordinates (latitude, longitude)
-5. Altitude in meters
-6. GPS accuracy
+## Layout
 
-## Setup
+```
+web/        The app (no build step, no dependencies)
+android/    Native shell: WebView + rotation-vector sensor, declination, haptics
+tests/      node --test for the heading/sun math
+```
 
-### Prerequisites
+## Install on Android via Obtainium
 
-- [Flutter SDK](https://flutter.dev/docs/get-started/install) (version 3.0.0 or higher)
-- Android Studio (for Android development)
-- Xcode (for iOS development, macOS only)
-- Android device or emulator (API 24+)
-- iOS device or simulator (iOS 12.0+)
+1. Install [Obtainium](https://github.com/ImranR98/Obtainium).
+2. Tap the *Add to Obtainium* link above, or add `https://github.com/jibes/simple-compass-app` manually.
+3. Obtainium picks up the APK from each GitHub release and updates automatically.
 
-### Installation
+## Releasing
 
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/jibes/simple-compass-app.git
-   cd simple-compass-app
-   ```
+Either push a tag:
 
-2. **Install dependencies:**
-   ```bash
-   flutter pub get
-   ```
-
-3. **For Android:**
-   - Open Android Studio
-   - Open the `android` folder
-   - Let Gradle sync
-   - Run on an Android device/emulator
-
-4. **For iOS:**
-   ```bash
-   cd ios
-   pod install
-   cd ..
-   ```
-   - Open Xcode
-   - Open the `ios` folder
-   - Select your development team
-   - Run on an iOS device/simulator
-
-### Running the App
-
-**From command line:**
 ```bash
-# Android
-flutter run -d android
-
-# iOS
-flutter run -d ios
+git tag v1.0.0 && git push origin v1.0.0
 ```
 
-**From IDE:**
-- Open in Android Studio or VS Code with Flutter plugin
-- Select target device
-- Click Run
+or run **Actions → Android → Run workflow** with a version. CI builds a signed `compass-<version>.apk` and attaches it to a GitHub release. Every other push builds an APK artifact for testing.
 
-## Permissions
+## Signing
 
-The app requires the following permissions:
+Obtainium only accepts updates signed with the same key. Releases are signed with `android/signing/compass.jks` (password `compass`, alias `compass`) so CI works with zero setup.
 
-### Android
-- `ACCESS_FINE_LOCATION` - For precise GPS coordinates
-- `ACCESS_COARSE_LOCATION` - For approximate location
-- `ACCESS_BACKGROUND_LOCATION` - For location updates in background (optional)
-- Sensor access for compass functionality
+To use a private key instead, add repository secrets `COMPASS_KEYSTORE_BASE64` (`base64 -w0 your.jks`), `COMPASS_KEYSTORE_PASSWORD`, `COMPASS_KEY_ALIAS`, `COMPASS_KEY_PASSWORD`. Do this **before** the first release you distribute — switching keys later forces users to uninstall and reinstall.
 
-### iOS
-- Location When In Use - For GPS coordinates while app is open
-- Location Always And When In Use - For continuous location updates
+## Development
 
-## Dependencies
-
-- [flutter](https://pub.dev/packages/flutter) - Flutter framework
-- [sensors_plus](https://pub.dev/packages/sensors_plus) - Access to device sensors (accelerometer, magnetometer)
-- [geolocator](https://pub.dev/packages/geolocator) - GPS location services
-- [permission_handler](https://pub.dev/packages/permission_handler) - Permission management
-
-## Project Structure
-
-```
-simple_compass_app/
-├── lib/
-│   └── main.dart          # Main app code
-├── android/               # Android platform code
-├── ios/                   # iOS platform code
-├── pubspec.yaml           # Flutter dependencies
-└── README.md              # This file
+```bash
+npx http-server web        # open http://localhost:8080 (localhost is a secure context)
+node --test tests/*.test.js
+cd android && ./gradlew assembleDebug   # needs Android SDK (ANDROID_HOME)
 ```
 
-## Troubleshooting
-
-### Android
-- **Location not working**: Ensure location services are enabled on your device
-- **Permission denied**: Check that you've granted location permissions in app settings
-- **Compass not accurate**: Calibrate your device's compass by moving it in a figure-8 pattern
-
-### iOS
-- **Location permission denied**: Go to Settings > Privacy > Location Services and enable for this app
-- **Simulator location**: Use Features > Location > Custom Location in the simulator menu
-- **Compass not available**: The simulator doesn't have a real compass; test on a physical device
-
-### General
-- **App crashes on startup**: Run `flutter clean` and `flutter pub get`, then rebuild
-- **Dependencies not found**: Run `flutter pub get` to install dependencies
-- **Build errors**: Ensure you're using a compatible Flutter version (check `pubspec.yaml`)
-
-## Customization
-
-You can customize the app by modifying `lib/main.dart`:
-
-- Change colors in the `ThemeData`
-- Adjust compass size and appearance
-- Modify coordinate display format
-- Add additional features like:
-  - Speed display
-  - Distance traveled
-  - Compass calibration
-  - Map integration
-
-## License
-
-MIT License - Feel free to use, modify, and distribute this code.
-
-## Contributing
-
-Contributions are welcome! Please open an issue or submit a pull request.
+Browser support: Chrome/Edge on Android use `deviceorientationabsolute`; iOS Safari uses `webkitCompassHeading` (asks for motion permission on first tap). Desktop browsers without a magnetometer get a drag-to-turn preview. GitHub Pages must be set to deploy from **GitHub Actions** (Settings → Pages).
