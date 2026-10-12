@@ -29,13 +29,7 @@ tests/      node --test for heading, sun and WMM2025 math
 
 ## Releasing
 
-Either push a tag:
-
-```bash
-git tag v1.0.0 && git push origin v1.0.0
-```
-
-or run **Actions → Android → Run workflow** with a version. CI builds a signed `compass-<version>.apk` and attaches it to a GitHub release. Every other push builds an APK artifact for testing.
+Bump `VERSION` and push to `main`. If no `v<version>` tag exists yet, CI builds a signed `compass-<version>.apk`, tags the commit and publishes a GitHub release. Pushing a `v*` tag or running **Actions → Android → Run workflow** with a version does the same. Every other push builds a test APK artifact.
 
 ## Signing
 
