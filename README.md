@@ -7,7 +7,7 @@ A quiet, precise compass. One web app, shipped as a PWA and as a native Android 
 ## What it does
 
 - **Tilt-compensated heading.** Reads correctly flat or held upright (switches smoothly from the top-edge axis to the camera axis).
-- **True north** on Android (WMM declination from the system); tap the top-left label to toggle magnetic/true.
+- **True north** everywhere: bundled World Magnetic Model 2025 (verified against NOAA's official test values), computed from your GPS fix. Tap the top-left label to toggle magnetic/true.
 - **Bearing lock.** Tap the dial to lock the current heading. An arc shows how far to turn; a haptic pulse confirms when you're back on bearing. Tap again to release.
 - **Sun marker** on the rim (filled above the horizon, hollow below) — a free cross-check of your compass.
 - **Level** — the centre dot is a spirit-level bubble.
@@ -17,8 +17,8 @@ A quiet, precise compass. One web app, shipped as a PWA and as a native Android 
 
 ```
 web/        The app (no build step, no dependencies)
-android/    Native shell: WebView + rotation-vector sensor, declination, haptics
-tests/      node --test for the heading/sun math
+android/    Native shell: WebView + rotation-vector sensor, calibration, haptics
+tests/      node --test for heading, sun and WMM2025 math
 ```
 
 ## Install on Android via Obtainium

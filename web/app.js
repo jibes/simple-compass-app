@@ -189,13 +189,11 @@
     el.posAcc.textContent = c.accuracy ? `±${Math.round(c.accuracy)} m` : '';
     el.alt.textContent = c.altitude !== null && c.altitude !== undefined ? `${Math.round(c.altitude)} m` : '—';
 
-    if (native && native.declination) {
-      const moved = !declinationAt || Math.abs(declinationAt[0] - c.latitude) + Math.abs(declinationAt[1] - c.longitude) > 0.05;
-      if (moved) {
-        state.declination = Number(native.declination(c.latitude, c.longitude, c.altitude || 0));
-        declinationAt = [c.latitude, c.longitude];
-        store.set('declination', state.declination);
-      }
+    const moved = !declinationAt || Math.abs(declinationAt[0] - c.latitude) + Math.abs(declinationAt[1] - c.longitude) > 0.05;
+    if (moved && window.WMM) {
+      state.declination = window.WMM.declination(c.latitude, c.longitude, (c.altitude || 0) / 1000);
+      declinationAt = [c.latitude, c.longitude];
+      store.set('declination', state.declination);
     }
     updateSun();
     renderStatus();
