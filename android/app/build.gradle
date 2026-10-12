@@ -3,11 +3,13 @@ plugins {
     id "org.jetbrains.kotlin.android"
 }
 
-// Release signing: CI secrets override the in-repo key (see README → Signing).
-def keystoreFile = System.getenv("COMPASS_KEYSTORE") ?: "${rootDir}/signing/compass.jks"
-def keystorePassword = System.getenv("COMPASS_KEYSTORE_PASSWORD") ?: "compass"
+// Release signing comes only from the environment (CI secrets, see README → Signing).
+// Without it, release builds fall back to the debug key: installable for testing, never published.
+def keystoreFile = System.getenv("COMPASS_KEYSTORE")
+def keystorePassword = System.getenv("COMPASS_KEYSTORE_PASSWORD")
 def keyAliasName = System.getenv("COMPASS_KEY_ALIAS") ?: "compass"
 def keyPasswordValue = System.getenv("COMPASS_KEY_PASSWORD") ?: keystorePassword
+def hasReleaseKey = keystoreFile && keystorePassword
 
 android {
     namespace "io.github.jibes.compass"
@@ -23,6 +25,7 @@ android {
 
     signingConfigs {
         release {
+            if (!hasReleaseKey) return
             storeFile file(keystoreFile)
             storePassword keystorePassword
             keyAlias keyAliasName
@@ -35,7 +38,7 @@ android {
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
-            signingConfig signingConfigs.release
+            signingConfig hasReleaseKey ? signingConfigs.release : signingConfigs.debug
         }
     }
 
