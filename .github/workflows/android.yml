@@ -1,0 +1,79 @@
+name: Android
+
+on:
+  push:
+    branches: ['**']
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g. 1.2.0). Creates tag v<version> and a GitHub release.'
+        required: false
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Resolve version
+        id: v
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then V="${GITHUB_REF#refs/tags/v}"
+          elif [[ -n "$INPUT_VERSION" ]]; then V="${INPUT_VERSION#v}"
+          else V="0.0.${{ github.run_number }}-dev"; fi
+          IFS=. read -r MA MI PA <<< "${V%%-*}"
+          CODE=$(( ${MA:-0} * 1000000 + ${MI:-0} * 1000 + ${PA:-0} ))
+          [[ "$V" == *-dev ]] && CODE=${{ github.run_number }}
+          echo "name=$V" >> "$GITHUB_OUTPUT"
+          echo "code=$CODE" >> "$GITHUB_OUTPUT"
+          [[ "$V" != *-dev ]] && echo "release=true" >> "$GITHUB_OUTPUT" || true
+
+      - name: Restore signing key from secrets (optional)
+        env:
+          KEYSTORE_BASE64: ${{ secrets.COMPASS_KEYSTORE_BASE64 }}
+        if: env.KEYSTORE_BASE64 != ''
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/compass.jks"
+          echo "COMPASS_KEYSTORE=$RUNNER_TEMP/compass.jks" >> "$GITHUB_ENV"
+
+      - name: Build APK
+        working-directory: android
+        env:
+          COMPASS_KEYSTORE_PASSWORD: ${{ secrets.COMPASS_KEYSTORE_PASSWORD }}
+          COMPASS_KEY_ALIAS: ${{ secrets.COMPASS_KEY_ALIAS }}
+          COMPASS_KEY_PASSWORD: ${{ secrets.COMPASS_KEY_PASSWORD }}
+        run: |
+          # Empty secrets must not override the in-repo defaults.
+          for k in COMPASS_KEYSTORE_PASSWORD COMPASS_KEY_ALIAS COMPASS_KEY_PASSWORD; do [[ -z "${!k}" ]] && unset $k; done
+          ./gradlew --no-daemon assembleRelease -PversionName=${{ steps.v.outputs.name }} -PversionCode=${{ steps.v.outputs.code }}
+          mkdir -p ../dist
+          cp app/build/outputs/apk/release/app-release.apk ../dist/compass-${{ steps.v.outputs.name }}.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: compass-${{ steps.v.outputs.name }}
+          path: dist/*.apk
+
+      - name: Publish release
+        if: steps.v.outputs.release == 'true' && github.event_name != 'pull_request'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.v.outputs.name }}
+          name: Compass ${{ steps.v.outputs.name }}
+          target_commitish: ${{ github.sha }}
+          generate_release_notes: true
+          files: dist/*.apk
