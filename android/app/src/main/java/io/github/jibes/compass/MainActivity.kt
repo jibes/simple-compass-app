@@ -3,7 +3,6 @@ package io.github.jibes.compass
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.pm.PackageManager
-import android.hardware.GeomagneticField
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
@@ -31,8 +30,8 @@ import kotlin.math.min
 
 /**
  * Thin native shell around the web app in /web. Adds what browsers can't:
- * fused rotation-vector heading with calibration status, true-north
- * declination, and system haptics.
+ * fused rotation-vector heading with calibration status and system haptics.
+ * True-north declination comes from the bundled WMM2025 model (web/wmm.js).
  */
 class MainActivity : ComponentActivity(), SensorEventListener {
 
@@ -171,10 +170,6 @@ class MainActivity : ComponentActivity(), SensorEventListener {
 
     /** Exposed to JavaScript as window.AndroidCompass. Called on a WebView background thread. */
     inner class Bridge {
-        @JavascriptInterface
-        fun declination(lat: Double, lon: Double, alt: Double): Double =
-            GeomagneticField(lat.toFloat(), lon.toFloat(), alt.toFloat(), System.currentTimeMillis()).declination.toDouble()
-
         @JavascriptInterface
         fun haptic(kind: String) {
             val effect = when {

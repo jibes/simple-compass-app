@@ -1,6 +1,6 @@
 // Offline app shell: serve from cache, refresh in the background.
-const CACHE = 'compass-v1';
-const SHELL = ['./', 'index.html', 'style.css', 'geo.js', 'app.js', 'manifest.webmanifest', 'icons/icon.svg', 'icons/icon-192.png'];
+const CACHE = 'compass-v2';
+const SHELL = ['./', 'index.html', 'style.css', 'geo.js', 'wmm.js', 'app.js', 'manifest.webmanifest', 'icons/icon.svg', 'icons/icon-192.png'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
