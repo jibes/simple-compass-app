@@ -33,9 +33,18 @@ Bump `VERSION` and push to `main`. If no `v<version>` tag exists yet, CI builds 
 
 ## Signing
 
-Obtainium only accepts updates signed with the same key. Releases are signed with `android/signing/compass.jks` (password `compass`, alias `compass`) so CI works with zero setup.
+Releases are signed with a private key held only in repository secrets; CI refuses to publish without it. Test builds without secrets are debug-signed.
 
-To use a private key instead, add repository secrets `COMPASS_KEYSTORE_BASE64` (`base64 -w0 your.jks`), `COMPASS_KEYSTORE_PASSWORD`, `COMPASS_KEY_ALIAS`, `COMPASS_KEY_PASSWORD`. Do this **before** the first release you distribute — switching keys later forces users to uninstall and reinstall.
+One-time setup (needs `keytool` from any JDK and the [GitHub CLI](https://cli.github.com)):
+
+```bash
+keytool -genkeypair -keystore compass-release.jks -storetype PKCS12 -alias compass \
+  -keyalg RSA -keysize 4096 -validity 36500 -dname "CN=Compass"
+base64 -w0 compass-release.jks | gh secret set COMPASS_KEYSTORE_BASE64 -R jibes/simple-compass-app
+gh secret set COMPASS_KEYSTORE_PASSWORD -R jibes/simple-compass-app   # paste the keystore password
+```
+
+(macOS: `base64 -i compass-release.jks`.) Back up `compass-release.jks` and its password offline. Obtainium only accepts updates signed with the same key, so losing it means every user reinstalls. Optional secrets: `COMPASS_KEY_ALIAS` (default `compass`), `COMPASS_KEY_PASSWORD` (defaults to the keystore password).
 
 ## Development
 

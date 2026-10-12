@@ -45,11 +45,19 @@ jobs:
           echo "code=$CODE" >> "$GITHUB_OUTPUT"
           [[ "$V" != *-dev ]] && echo "release=true" >> "$GITHUB_OUTPUT" || true
 
-      - name: Restore signing key from secrets (optional)
+      - name: Restore signing key
         env:
           KEYSTORE_BASE64: ${{ secrets.COMPASS_KEYSTORE_BASE64 }}
-        if: env.KEYSTORE_BASE64 != ''
+          RELEASE: ${{ steps.v.outputs.release }}
         run: |
+          if [[ -z "$KEYSTORE_BASE64" ]]; then
+            if [[ "$RELEASE" == true ]]; then
+              echo "::error::Release needs the COMPASS_KEYSTORE_BASE64 / COMPASS_KEYSTORE_PASSWORD secrets (README → Signing)."
+              exit 1
+            fi
+            echo "::notice::No signing secrets; test build is debug-signed."
+            exit 0
+          fi
           echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/compass.jks"
           echo "COMPASS_KEYSTORE=$RUNNER_TEMP/compass.jks" >> "$GITHUB_ENV"
 
@@ -60,7 +68,7 @@ jobs:
           COMPASS_KEY_ALIAS: ${{ secrets.COMPASS_KEY_ALIAS }}
           COMPASS_KEY_PASSWORD: ${{ secrets.COMPASS_KEY_PASSWORD }}
         run: |
-          # Empty secrets must not override the in-repo defaults.
+          # Unset empty optional secrets so Gradle defaults apply.
           for k in COMPASS_KEYSTORE_PASSWORD COMPASS_KEY_ALIAS COMPASS_KEY_PASSWORD; do [[ -z "${!k}" ]] && unset $k; done
           ./gradlew --no-daemon assembleRelease -PversionName=${{ steps.v.outputs.name }} -PversionCode=${{ steps.v.outputs.code }}
           mkdir -p ../dist
