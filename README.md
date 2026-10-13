@@ -55,3 +55,7 @@ cd android && ./gradlew assembleDebug   # needs Android SDK (ANDROID_HOME)
 ```
 
 Browser support: Chrome/Edge on Android use `deviceorientationabsolute`; iOS Safari uses `webkitCompassHeading` (asks for motion permission on first tap). Desktop browsers without a magnetometer get a drag-to-turn preview. GitHub Pages must be set to deploy from **GitHub Actions** (Settings → Pages).
+
+## Licence
+
+[GPL-3.0-or-later](LICENSE).
