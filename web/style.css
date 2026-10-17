@@ -245,6 +245,8 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; bo
 }
 .app[data-moving] .cell--speed { flex-grow: 1 !important; opacity: 1; margin-left: 0; }
 #speed { color: var(--accent); }
+.cell--speed { align-items: center; }
+.cell--end { align-items: flex-end; text-align: right; }
 .label {
   font-size: 10px;
   font-weight: 600;
