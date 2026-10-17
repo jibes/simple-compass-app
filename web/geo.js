@@ -66,7 +66,76 @@
   const formatCoord = (v, axis) =>
     `${Math.abs(v).toFixed(5)}° ${axis === 'lat' ? (v >= 0 ? 'N' : 'S') : (v >= 0 ? 'E' : 'W')}`;
 
-  const api = { norm, delta, headingFromEuler, headingFromAxes, sunPosition, cardinal, formatCoord };
+  /** Great-circle distance in metres. */
+  function distance(lat1, lon1, lat2, lon2) {
+    const dLat = (lat2 - lat1) * RAD, dLon = (lon2 - lon1) * RAD;
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * RAD) * Math.cos(lat2 * RAD) * Math.sin(dLon / 2) ** 2;
+    return 2 * 6371008.8 * Math.asin(Math.min(1, Math.sqrt(a)));
+  }
+
+  /**
+   * Robust ground speed from noisy location fixes.
+   * - drops fixes worse than maxAccuracy;
+   * - prefers the receiver's Doppler speed; otherwise measures displacement from an
+   *   anchor only once it exceeds the combined position error (no jitter "walking");
+   * - clamps implausible acceleration, low-passes with time constant tau;
+   * - reports `moving` with hysteresis and hold times so a bad fix never flickers it.
+   * Times are in seconds, speeds in m/s.
+   */
+  function createSpeedFilter(options) {
+    const o = Object.assign({
+      maxAccuracy: 40, tau: 3, maxAccel: 4, startSpeed: 0.9, stopSpeed: 0.45,
+      startHold: 3, stopHold: 6, anchorWindow: 10, stale: 15,
+    }, options);
+    let v = 0, moving = false, since = null, lastT = null, anchor = null;
+
+    function measure(m, t) {
+      const dt = lastT === null ? 1 : Math.max(0.1, t - lastT);
+      m = Math.min(Math.max(m, v - o.maxAccel * dt), v + o.maxAccel * dt);
+      v += (1 - Math.exp(-dt / o.tau)) * (m - v);
+      if (v < 0.05) v = 0;
+      lastT = t;
+      const crossing = moving ? v < o.stopSpeed : v > o.startSpeed;
+      if (!crossing) since = null;
+      else if (since === null) since = t;
+      if (crossing && t - since >= (moving ? o.stopHold : o.startHold)) { moving = !moving; since = null; }
+    }
+
+    return {
+      update(fix) {
+        if (!(fix.accuracy <= o.maxAccuracy)) return this.state();
+        if (Number.isFinite(fix.speed) && fix.speed >= 0) {
+          anchor = fix;
+          measure(fix.speed, fix.t);
+        } else if (!anchor) {
+          anchor = fix;
+        } else {
+          const dt = fix.t - anchor.t;
+          if (dt <= 0) return this.state();
+          const d = distance(anchor.lat, anchor.lon, fix.lat, fix.lon);
+          const noise = Math.hypot(fix.accuracy, anchor.accuracy);
+          if (d > noise) { measure(d / dt, fix.t); anchor = fix; }
+          else if (dt > o.anchorWindow) { measure(0, fix.t); anchor = fix; }
+        }
+        return this.state();
+      },
+      /** Call periodically: with no usable fix for `stale` seconds, decay to rest. */
+      tick(t) {
+        if (lastT !== null && t - lastT > o.stale && (v > 0 || moving)) {
+          v = 0; moving = false; since = null; anchor = null;
+        }
+        return this.state();
+      },
+      state: () => ({ speed: v, moving }),
+    };
+  }
+
+  const formatSpeed = (ms) => {
+    const k = ms * 3.6;
+    return `${k < 10 ? k.toFixed(1) : Math.round(k)} km/h`;
+  };
+
+  const api = { norm, delta, headingFromEuler, headingFromAxes, sunPosition, cardinal, formatCoord, distance, createSpeedFilter, formatSpeed };
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.CompassGeo = api;
 })(typeof self !== 'undefined' ? self : this);

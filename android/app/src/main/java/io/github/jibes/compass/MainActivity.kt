@@ -43,6 +43,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
     private var calibration = -1
     private var pageReady = false
     private var insetsJs = ""
+    @Volatile private var insetsDp = floatArrayOf(0f, 0f)
     private var pendingGeo: Pair<String, GeolocationPermissions.Callback>? = null
 
     private val locationPermission = registerForActivityResult(
@@ -106,6 +107,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         ViewCompat.setOnApplyWindowInsetsListener(webView) { view, insets ->
             val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
             val density = resources.displayMetrics.density
+            insetsDp = floatArrayOf(bars.top / density, bars.bottom / density)
             insetsJs = "document.documentElement.style.setProperty('--inset-top','${bars.top / density}px');" +
                 "document.documentElement.style.setProperty('--inset-bottom','${bars.bottom / density}px');"
             if (pageReady) (view as WebView).evaluateJavascript(insetsJs, null)
@@ -170,6 +172,9 @@ class MainActivity : ComponentActivity(), SensorEventListener {
 
     /** Exposed to JavaScript as window.AndroidCompass. Called on a WebView background thread. */
     inner class Bridge {
+        @JavascriptInterface
+        fun insets(): String = insetsDp.let { "{\"top\":${it[0]},\"bottom\":${it[1]}}" }
+
         @JavascriptInterface
         fun haptic(kind: String) {
             val effect = when {

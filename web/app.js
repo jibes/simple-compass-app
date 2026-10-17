@@ -13,7 +13,7 @@
     app: $('app'), dial: $('dial'), ticks: $('ticks'), marks: $('marks'), arc: $('arc'), bubble: $('bubble'),
     deg: $('deg'), caption: $('caption'), north: $('north'), quality: $('quality'), enable: $('enable'),
     position: $('position'), posAcc: $('pos-acc'), lat: $('lat'), lon: $('lon'), alt: $('alt'), sun: $('sun'),
-    toast: $('toast'),
+    toast: $('toast'), speed: $('speed'), speedCell: $('speed-cell'),
   };
 
   const state = {
@@ -184,6 +184,10 @@
   function onPosition(pos) {
     const c = pos.coords;
     state.position = c;
+    const sp = speedFilter.update({
+      t: pos.timestamp / 1000, lat: c.latitude, lon: c.longitude, accuracy: c.accuracy, speed: c.speed,
+    });
+    renderSpeed(sp);
     el.lat.textContent = G.formatCoord(c.latitude, 'lat');
     el.lon.textContent = G.formatCoord(c.longitude, 'lon');
     el.posAcc.textContent = c.accuracy ? `±${Math.round(c.accuracy)} m` : '';
@@ -199,12 +203,21 @@
     renderStatus();
   }
 
+  const speedFilter = G.createSpeedFilter();
+  function renderSpeed({ speed, moving }) {
+    el.app.toggleAttribute('data-moving', moving);
+    el.speedCell.setAttribute('aria-hidden', String(!moving));
+    if (moving) el.speed.textContent = G.formatSpeed(speed);
+  }
+  setInterval(() => renderSpeed(speedFilter.tick(Date.now() / 1000)), 2000);
+
   function updateSun() {
     if (!state.position) return;
     const s = G.sunPosition(new Date(), state.position.latitude, state.position.longitude);
     state.sun = s;
     const up = s.elevation > -0.833;
-    el.sun.textContent = `${Math.round(s.azimuth)}° · ${Math.abs(Math.round(s.elevation))}° ${up ? 'up' : 'below'}`;
+    el.sun.textContent = `${Math.round(s.azimuth)}°  ${up ? '↑' : '↓'}${Math.abs(Math.round(s.elevation))}°`;
+    el.sun.title = up ? 'Azimuth, elevation above horizon' : 'Azimuth, depth below horizon';
     el.sunMark.hidden = false;
     el.sunMark.toggleAttribute('data-below', !up);
   }
@@ -366,6 +379,15 @@
     if (document.visibilityState === 'visible') { keepAwake(); updateSun(); }
   });
   setInterval(() => { updateSun(); renderStatus(); }, 30000);
+
+  // Android shell: read system bar sizes synchronously so the first frame is laid out correctly.
+  if (native && native.insets) {
+    try {
+      const i = JSON.parse(native.insets());
+      document.documentElement.style.setProperty('--inset-top', `${i.top}px`);
+      document.documentElement.style.setProperty('--inset-bottom', `${i.bottom}px`);
+    } catch { /* older shell */ }
+  }
 
   buildDial();
   renderStatus();

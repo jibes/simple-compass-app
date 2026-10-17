@@ -11,6 +11,7 @@ A quiet, precise compass. One web app, shipped as a PWA and as a native Android 
 - **Bearing lock.** Tap the dial to lock the current heading. An arc shows how far to turn; a haptic pulse confirms when you're back on bearing. Tap again to release.
 - **Sun marker** on the rim (filled above the horizon, hollow below) — a free cross-check of your compass.
 - **Level** — the centre dot is a spirit-level bubble.
+- **Speed** appears only while you're moving: GPS speed with accuracy gating, outlier and acceleration limits, smoothing, and start/stop hold times so a bad fix never flickers it.
 - **Haptic detents** every 45°, position/altitude/accuracy, tap position to copy. Works offline. Keeps the screen awake.
 
 ## Layout
